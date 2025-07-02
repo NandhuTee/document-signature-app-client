@@ -1,0 +1,9 @@
+node_modules/
+    .gitignore
+        index.html
+        package-lock.json
+        package.json
+        postcss.config.js
+        src/
+        tailwind.config.js
+        vite.config.js
