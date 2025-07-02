@@ -1,34 +1,58 @@
-import { useState } from 'react';
+// UploadForm.jsx
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function UploadForm() {
+  const navigate = useNavigate(); 
   const [file, setFile] = useState(null);
+  const [message, setMessage] = useState('');
 
-  const handleUpload = async (e) => {
-    e.preventDefault();
+  const handleUpload = async () => {
+    if (!file) return setMessage("Please choose a file first.");
+
     const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch('https://document-signature-app-server-zp95.onrender.com/api/docs/upload', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData
-    });
-
-    const data = await res.json();
+      const handleUpload = async () => {
+    // ... your upload logic
     if (res.ok) {
-      alert('Upload success!');
-    } else {
-      alert(data.error || 'Upload failed');
+      setMessage('✅ Upload successful!');
+      setTimeout(() => {
+        navigate('/documents');  // redirects to dashboard
+      }, 1000);
+    }
+  };
+
+    try {
+      const res = await fetch('https://document-signature-app-server-zp95.onrender.com/api/docs/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMessage('✅ Upload successful!');
+        console.log(data);
+      } else {
+        setMessage('❌ Upload failed.');
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage('❌ Server error');
     }
   };
 
   return (
-    <form onSubmit={handleUpload} className="max-w-md mx-auto mt-10 space-y-4">
-      <h2 className="text-2xl font-semibold text-center">Upload Document</h2>
-      <input type="file" onChange={(e) => setFile(e.target.files[0])} className="w-full" required />
-      <button className="w-full p-2 bg-purple-600 text-white">Upload</button>
-    </form>
+    <div className="p-4 max-w-md mx-auto">
+      <h2 className="text-xl font-bold mb-4">Upload a Document</h2>
+      <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+      <button onClick={handleUpload} className="mt-2 bg-blue-500 text-white px-4 py-1 rounded">Upload</button>
+      {message && <p className="mt-2">{message}</p>}
+    </div>
   );
 }
 

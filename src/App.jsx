@@ -1,23 +1,38 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+// src/App.jsx
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Register from './components/Register';
 import Login from './components/Login';
 import UploadForm from './components/UploadForm';
 import DocumentList from './components/DocumentList';
+import Home from './components/Home';
+import Layout from './components/Layout'; // 👈 import Layout
+import ErrorPage from './components/ErrorPage';
+import Navbar from './components/Navbar';
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Layout />, // 👈 Wrap with Layout
+    errorElement: <ErrorPage />,
+    children: [
+      { path: '/', element: <Home /> },
+      { path: '/login', element: <Login /> },
+      { path: '/register', element: <Register /> },
+      { path: '/upload', element: <UploadForm /> },
+      { path: '/documents', element: <DocumentList /> },
+      {  path: '/sign',  element: <SignPdf />},
+      {  path: '/sign',  element: <SignPage />
+}
+    ]
+  }
+]);
 
 function App() {
-  const isLoggedIn = localStorage.getItem('token');
-
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-800 p-4">
-      <Routes>
-        <Route path="/" element={isLoggedIn ? <Navigate to="/upload" /> : <Navigate to="/login" />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/upload" element={<UploadForm />} />
-        <Route path="/docs" element={<DocumentList />} />
-        <Route path="*" element={<h1 className="text-center text-2xl text-red-600">404 - Page Not Found</h1>} />
-      </Routes>
-    </div>
+    <>
+      <Navbar /> {/* This appears on every page */}
+      <RouterProvider router={router} />
+    </>
   );
 }
 
