@@ -14,6 +14,7 @@ import SignPDFPage from './utils/SignPDFPage';
 import Dashboard from './components/Dashboard';
 import ErrorPage from './components/ErrorPage';
 import { checkAuth } from './utils/auth';
+import TypedSignatureDrag from './components/TypedSignatureDrag'; // 
 
 const router = createBrowserRouter([
   {
@@ -32,7 +33,10 @@ const router = createBrowserRouter([
       { path: '/sign/:id', element: <SignDocument />, errorElement: <ErrorPage /> },
       { path: '/sign-pdf', element: <SignPDFPage /> },
       { path: '/sign-typed', element: <SignTypedPDF /> },
-      { path: '/dashboard', element: <Dashboard />, loader: checkAuth }
+      { path: '/typed-signature', element: <TypedSignatureDrag /> },
+      { path: '/dashboard', element: <Dashboard />, loader: checkAuth },
+
+      
     ]
   }
 ]);
@@ -41,4 +45,4 @@ function App() {
   return <RouterProvider router={router} />;
 }
 
-export default App; // ✅ Must come after the App() definition
+export default App; 

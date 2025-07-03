@@ -16,6 +16,7 @@ const Navbar = () => {
       <div className="space-x-4">
         <Link to="/upload" className="hover:text-yellow-300">Upload</Link>
         <Link to="/documents" className="hover:text-yellow-300">Dashboard</Link>
+        <Link to="/sign-pdf" className="hover:text-yellow-300">Add Sign</Link>
         <button
           onClick={handleLogout}
           className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm"

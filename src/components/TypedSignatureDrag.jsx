@@ -13,47 +13,52 @@ function TypedSignatureDrag() {
   const [name, setName] = useState('Your Name');
   const [font, setFont] = useState(fonts[0]);
   const [file, setFile] = useState(null);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
+  const [signatureAdded, setSignatureAdded] = useState(false);
   const [position, setPosition] = useState({ x: 100, y: 100 });
 
   const previewRef = useRef();
-  const pdfCanvasRef = useRef();
-
-  const handleDrag = (e, data) => {
-    setPosition({ x: data.x, y: data.y });
-  };
+  const canvasRef = useRef();
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     setFile(selectedFile);
-    setPdfPreviewUrl(URL.createObjectURL(selectedFile));
+    setSignatureAdded(false); // Reset
   };
 
-  const handleSign = async () => {
-    if (!file) return alert("Please upload a PDF");
+  const handleDrag = (_, data) => {
+    setPosition({ x: data.x, y: data.y });
+  };
 
+  const handleAddSignature = () => setSignatureAdded(true);
+
+  const handleDownload = async () => {
+    if (!file || !signatureAdded) return alert("Upload PDF and add signature first.");
+
+    // Ensure font is loaded
+    if ('fonts' in document) {
+      await document.fonts.load(`32px '${font}'`);
+      await document.fonts.ready;
+    }
+
+    const pngDataUrl = await htmlToImage.toPng(canvasRef.current);
     const pdfBytes = new Uint8Array(await file.arrayBuffer());
     const pdfDoc = await PDFDocument.load(pdfBytes);
 
-    const pngDataUrl = await htmlToImage.toPng(previewRef.current);
     const pngImage = await pdfDoc.embedPng(pngDataUrl);
     const dims = pngImage.scale(0.5);
 
     const page = pdfDoc.getPages()[0];
-    const canvasRect = pdfCanvasRef.current.getBoundingClientRect();
-
-    const x = position.x;
-    const y = canvasRect.height - position.y - dims.height;
+    const yFlipped = canvasRef.current.clientHeight - position.y - dims.height;
 
     page.drawImage(pngImage, {
-      x,
-      y,
+      x: position.x,
+      y: yFlipped,
       width: dims.width,
-      height: dims.height,
+      height: dims.height
     });
 
-    const signedPdfBytes = await pdfDoc.save();
-    saveAs(new Blob([signedPdfBytes]), 'signed.pdf');
+    const finalPdf = await pdfDoc.save();
+    saveAs(new Blob([finalPdf]), 'signed.pdf');
   };
 
   return (
@@ -73,6 +78,7 @@ function TypedSignatureDrag() {
         onChange={(e) => setName(e.target.value)}
         className="border p-2 w-full"
         placeholder="Type your name"
+        style={{ fontFamily: font }}
       />
 
       <select
@@ -81,49 +87,61 @@ function TypedSignatureDrag() {
         className="border p-2 w-full"
       >
         {fonts.map(f => (
-          <option key={f} value={f}>{f}</option>
+          <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
         ))}
       </select>
 
-      {/* Preview Canvas */}
       <div
+        ref={canvasRef}
         className="relative border bg-gray-100 overflow-hidden"
-        ref={pdfCanvasRef}
         style={{ width: '600px', height: '400px' }}
       >
-        {pdfPreviewUrl && (
-          <iframe
-            src={pdfPreviewUrl + "#toolbar=0&navpanes=0&scrollbar=0"}
-            className="absolute top-0 left-0 w-full h-full"
-            title="PDF Preview"
-          />
-        )}
+        <p className="absolute top-1 left-1 text-sm text-gray-500 z-0">📝 Document Preview Area</p>
 
-        <Draggable onDrag={handleDrag} position={position}>
-          <div
-            ref={previewRef}
-            style={{
-              fontFamily: font,
-              fontSize: '32px',
-              cursor: 'move',
-              position: 'absolute',
-              background: 'transparent',
-              color: 'black'
-            }}
-          >
-            {name}
-          </div>
-        </Draggable>
+        {signatureAdded && (
+          <Draggable onDrag={handleDrag} position={position}>
+            <div
+              ref={previewRef}
+              style={{
+                fontFamily: font,
+                fontSize: '32px',
+                cursor: 'move',
+                background: 'transparent',
+                color: 'black',
+                position: 'absolute'
+              }}
+            >
+              {name}
+            </div>
+          </Draggable>
+        )}
       </div>
 
-      <p className="text-gray-500 text-sm">🖱️ Drag your signature on the preview and click below to embed it.</p>
+      <div className="flex gap-4">
+        {!signatureAdded && (
+          <button
+            onClick={handleAddSignature}
+            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+          >
+            ➕ Add Signature
+          </button>
+        )}
 
-      <button
-        onClick={handleSign}
-        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-      >
-        Sign & Download PDF
-      </button>
+        {signatureAdded && (
+          <button
+            onClick={handleDownload}
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+          >
+            📥 Download Signed PDF
+          </button>
+        )}
+      </div>
+
+      {signatureAdded && (
+        <p className="text-sm text-gray-500">
+          🖱️ Drag your signature on the preview area before downloading.
+        </p>
+      )}
     </div>
   );
 }
