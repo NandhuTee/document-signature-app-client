@@ -26,6 +26,7 @@ function Login() {
   };
 
   return (
+    
     <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10 space-y-4">
       <h2 className="text-2xl font-semibold text-center">Login</h2>
       <input type="email" name="email" placeholder="Email" className="w-full p-2 border" onChange={handleChange} required />
