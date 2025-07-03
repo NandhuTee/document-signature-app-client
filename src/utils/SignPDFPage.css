@@ -1,0 +1,65 @@
+/* SignPDFPage.css */
+
+/* Container holding the page and all overlays */
+.pdf-page-container {
+  position: relative;
+  width: 595.44px;  /* A4 width */
+  height: 841.68px; /* A4 height */
+  border: 1px solid #ccc;
+  margin-top: 60px;
+}
+
+/* Signature box styles */
+.signature-box {
+  position: absolute;
+  border: 2px solid blue;
+  background-color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  z-index: 20;
+  padding: 2px;
+  overflow: hidden;
+  cursor: move;
+}
+
+/* Locked signature visual */
+.signature-box.locked {
+  border: 2px dashed gray;
+  cursor: not-allowed;
+}
+
+/* Button styles */
+.signature-controls button {
+  font-size: 10px;
+  padding: 1px 4px;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  z-index: 25;
+}
+
+.lock-btn {
+  background-color: #f59e0b; /* yellow-500 */
+  position: absolute;
+  top: -18px;
+  left: 0;
+}
+
+.delete-btn {
+  background-color: #ef4444; /* red-500 */
+  position: absolute;
+  top: -18px;
+  right: 0;
+}
+
+/* Resize corner box */
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background-color: #2563eb; /* blue-600 */
+  cursor: nwse-resize;
+  z-index: 1000;
+}

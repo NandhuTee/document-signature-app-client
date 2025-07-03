@@ -1,231 +1,353 @@
-// File: SignPDFPage.jsx
+import React, { useState, useRef } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import './SignPDFPage.css';
 
-import React, { useRef, useState } from 'react';
-import { PDFDocument } from 'pdf-lib';
-import { saveAs } from 'file-saver';
-import * as htmlToImage from 'html-to-image';
-import Draggable from 'react-draggable';
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const fonts = [
   'Great Vibes', 'Pacifico', 'Dancing Script',
   'Satisfy', 'Sacramento', 'Allura', 'Alex Brush'
 ];
+const colors = { black: "#000000", blue: "#0000FF", red: "#FF0000", green: "#00AA00" };
+const A4_WIDTH = 595.44;
+const A4_HEIGHT = 841.68;
 
-const colors = {
-  black: '#000000',
-  blue: '#0000FF',
-  red: '#FF0000',
-  green: '#00AA00',
-};
-
-function SignPDFPage() {
-  const [name, setName] = useState('Your Name');
-  const [font, setFont] = useState(fonts[0]);
-  const [color, setColor] = useState('#000000');
-  const [fontSize, setFontSize] = useState(32);
-  const [file, setFile] = useState(null);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pageCount, setPageCount] = useState(1);
+const SignPDFPage = () => {
+  const [pdfFile, setPdfFile] = useState(null);
+  const [numPages, setNumPages] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [typedSignature, setTypedSignature] = useState("Your Signature");
+  const [selectedFont, setSelectedFont] = useState("Allura");
+  const [selectedColor, setSelectedColor] = useState("#000000");
   const [signatures, setSignatures] = useState([]);
+  const pageRef = useRef();
 
-  const handleFileChange = async (e) => {
-    const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
-
-    const url = URL.createObjectURL(selectedFile);
-    setFile(selectedFile);
-    setPdfPreviewUrl(url);
-    setPageNumber(1);
-    setSignatures([]);
-
-    const arrayBuffer = await selectedFile.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
-    setPageCount(pdfDoc.getPages().length);
+    const handlePDFUpload = (e) => {
+    const file = e.target.files[0];
+    if (file?.type === "application/pdf") {
+      setPdfFile(file);
+      setSignatures([]);
+      setCurrentPage(1);
+    }
   };
 
-  const handleAddSignature = () => {
-    setSignatures([
-      ...signatures,
+  const handleDocumentLoad = ({ numPages }) => setNumPages(numPages);
+
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData("signature", "typed");
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const rect = pageRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const existing = signatures.find((s) => s.page === currentPage);
+    if (existing) return;
+
+    setSignatures((prev) => [
+      ...prev,
       {
         id: Date.now(),
-        name,
-        font,
-        color,
-        fontSize,
-        position: { x: 100, y: 100 },
-        page: pageNumber,
-      }
+        page: currentPage,
+        x,
+        y,
+        width: 150,
+        height: 40,
+        text: typedSignature,
+        font: selectedFont,
+        color: selectedColor,
+        locked: false,
+      },
     ]);
   };
 
-  const handleDrag = (id, data) => {
-    setSignatures((prev) =>
-      prev.map((sig) =>
-        sig.id === id ? { ...sig, position: { x: data.x, y: data.y } } : sig
-      )
-    );
+  const handleDragOver = (e) => e.preventDefault();
+
+  const hexToRgb = (hex) => {
+    const val = hex.replace("#", "");
+    return {
+      r: parseInt(val.substring(0, 2), 16),
+      g: parseInt(val.substring(2, 4), 16),
+      b: parseInt(val.substring(4, 6), 16),
+    };
   };
 
-  const handleDownload = async () => {
-    if (!file) return alert("Upload a PDF first");
-
-    const arrayBuffer = await file.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
+  const generateSignedPDF = async () => {
+    if (!pdfFile) return;
+    const pdfBytes = await pdfFile.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(pdfBytes);
     const pages = pdfDoc.getPages();
 
     for (const sig of signatures) {
       const page = pages[sig.page - 1];
-      const renderId = `sig-render-${sig.id}`;
-      const node = document.getElementById(renderId);
-      const dataUrl = await htmlToImage.toPng(node);
-      const pngImage = await pdfDoc.embedPng(dataUrl);
-      const dims = pngImage.scale(0.5);
+      const { height } = page.getSize();
+      const scale = height / A4_HEIGHT;
 
-      const pageHeight = page.getHeight();
-      const yPDF = pageHeight - sig.position.y - dims.height;
+      const font = await pdfDoc.embedFont(StandardFonts[sig.font] || StandardFonts.Helvetica);
+      const color = hexToRgb(sig.color);
 
-      page.drawImage(pngImage, {
-        x: sig.position.x,
-        y: yPDF,
-        width: dims.width,
-        height: dims.height,
+      page.drawText(sig.text, {
+        x: sig.x * scale,
+        y: height - sig.y * scale - sig.height * scale,
+        size: 16 * scale,
+        font,
+        color: rgb(color.r / 255, color.g / 255, color.b / 255),
       });
     }
 
     const finalPdf = await pdfDoc.save();
-    saveAs(new Blob([finalPdf], { type: 'application/pdf' }), 'signed.pdf');
+    const blob = new Blob([finalPdf], { type: "application/pdf" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "signed.pdf";
+    link.click();
   };
 
   return (
-    <div className="p-6 space-y-4 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold">🖋️ PDF Signature Tool</h2>
+    <div className="flex flex-col md:flex-row p-4 gap-6">
+      {/* Left Panel */}
+      <div className="w-full md:w-1/3 space-y-4">
+        <h2 className="text-xl font-bold">Typed Signature</h2>
 
-      <input
-        type="file"
-        accept="application/pdf"
-        onChange={handleFileChange}
-        className="border p-2 w-full"
-      />
+        <div>
+          <label>Upload PDF:</label>
+          <input type="file" accept="application/pdf" onChange={handlePDFUpload} />
+        </div>
 
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Type your name"
-        className="border p-2 w-full"
-        style={{ fontFamily: font }}
-      />
-
-      <div className="flex gap-2">
-        <select value={font} onChange={(e) => setFont(e.target.value)} className="border p-2 w-full">
-          {fonts.map(f => (
-            <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>
-          ))}
-        </select>
-
-        <select value={color} onChange={(e) => setColor(e.target.value)} className="border p-2">
-          {Object.entries(colors).map(([name, val]) => (
-            <option key={name} value={val}>{name}</option>
-          ))}
-        </select>
-
-        <input
-          type="number"
-          min="10"
-          max="100"
-          value={fontSize}
-          onChange={(e) => setFontSize(Number(e.target.value))}
-          className="border p-2 w-20"
-        />
-      </div>
-
-      <div className="flex items-center gap-2">
-        <label>🗂️ Page #</label>
-        <input
-          type="number"
-          min="1"
-          max={pageCount}
-          value={pageNumber}
-          onChange={(e) => setPageNumber(Number(e.target.value))}
-          className="border p-2 w-20"
-        />
-      </div>
-
-      <div
-        className="relative border shadow bg-white overflow-hidden"
-        style={{ width: '595px', height: '842px', position: 'relative' }}
-      >
-        {pdfPreviewUrl && (
-          <iframe
-            src={`${pdfPreviewUrl}#page=${pageNumber}&toolbar=0&navpanes=0&scrollbar=0`}
-            className="absolute top-0 left-0 w-full h-full"
-            title="PDF Preview"
+        <div>
+          <label>Signature Text:</label>
+          <input
+            type="text"
+            value={typedSignature}
+            onChange={(e) => setTypedSignature(e.target.value)}
+            className="border p-1 w-full"
           />
-        )}
+        </div>
 
-        {signatures
-          .filter(sig => sig.page === pageNumber)
-          .map(sig => (
-            <Draggable
-              key={sig.id}
-              onDrag={(_, data) => handleDrag(sig.id, data)}
-              position={sig.position}
-            >
-              <div
-                id={`sig-${sig.id}`}
-                style={{
-                  fontFamily: sig.font,
-                  fontSize: `${sig.fontSize}px`,
-                  color: sig.color,
-                  background: 'transparent',
-                  position: 'absolute',
-                  cursor: 'move',
-                  pointerEvents: 'auto',
-                }}
-              >
-                {sig.name}
-              </div>
-            </Draggable>
-          ))}
-      </div>
+        <div>
+          <label>Font:</label>
+          <select
+            value={selectedFont}
+            onChange={(e) => setSelectedFont(e.target.value)}
+            className="border p-1 w-full"
+          >
+            {fonts.map((font, idx) => (
+              <option key={idx} value={font}>{font}</option>
+            ))}
+          </select>
+        </div>
 
-      <div className="flex gap-4">
-        <button onClick={handleAddSignature} className="bg-green-600 text-white px-4 py-2 rounded">
-          ➕ Add Signature
-        </button>
-        <button onClick={handleDownload} className="bg-blue-600 text-white px-4 py-2 rounded">
-          📥 Download Signed PDF
-        </button>
-      </div>
+        <div>
+          <label>Color:</label>
+          <select
+            value={selectedColor}
+            onChange={(e) => setSelectedColor(e.target.value)}
+            className="border p-1 w-full"
+          >
+            {Object.entries(colors).map(([name, hex]) => (
+              <option key={name} value={hex}>{name}</option>
+            ))}
+          </select>
+        </div>
 
-      {signatures.length > 0 && (
-        <p className="text-sm text-gray-500">
-          🖱️ Drag each signature to the correct spot before downloading.
-        </p>
-      )}
-
-      {/* Invisible offscreen render for html-to-image */}
-      <div style={{ position: 'absolute', top: -9999, left: -9999 }}>
-        {signatures.map(sig => (
+        <div>
+          <p>Drag this:</p>
           <div
-            key={sig.id}
-            id={`sig-render-${sig.id}`}
+            draggable
+            onDragStart={handleDragStart}
+            className="border bg-gray-100 px-2 py-1 inline-block cursor-move"
             style={{
-              fontFamily: sig.font,
-              fontSize: `${sig.fontSize}px`,
-              color: sig.color,
-              background: 'transparent',
-              width: 'max-content',
-              padding: 2
+              fontFamily: selectedFont,
+              color: selectedColor,
+              fontSize: "16px",
             }}
           >
-            {sig.name}
+            {typedSignature}
           </div>
-        ))}
+        </div>
+
+        <button
+          onClick={generateSignedPDF}
+          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Download Signed PDF
+        </button>
+      </div>
+
+      {/* Right Panel */}
+      <div className="w-full md:w-2/3">
+        {pdfFile && (
+          <div className="relative">
+            {/* Navigation Arrows */}
+            <div className="absolute top-2 right-1/2 translate-x-1/2 z-10 flex gap-2">
+              <button
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+                className="bg-gray-300 px-2 py-1 rounded disabled:opacity-50"
+              >
+                ← Prev
+              </button>
+              <button
+                disabled={currentPage >= numPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className="bg-gray-300 px-2 py-1 rounded disabled:opacity-50"
+              >
+                Next →
+              </button>
+            </div>
+
+            <div
+              ref={pageRef}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              style={{
+                width: A4_WIDTH,
+                height: A4_HEIGHT,
+                marginTop: 60,
+                border: "1px solid #ccc",
+                position: "relative",
+              }}
+            >
+              <Document file={pdfFile} onLoadSuccess={handleDocumentLoad}>
+                <Page
+  pageNumber={currentPage}
+  width={A4_WIDTH}
+  renderAnnotationLayer={false}
+  renderTextLayer={false}
+/>
+
+              </Document>
+
+              {signatures
+                .filter((s) => s.page === currentPage)
+                .map((sig) => (
+                  <div
+                    key={sig.id}
+                   style={{
+  position: "absolute",
+  left: sig.x,
+  top: sig.y,
+  width: sig.width,
+  height: sig.height,
+  fontFamily: sig.font,
+  color: sig.color,
+  fontSize: "16px",
+  border: sig.locked ? "2px dashed gray" : "2px solid blue",
+  cursor: sig.locked ? "not-allowed" : "move",
+  overflow: "visible",
+  padding: "2px",
+  zIndex: 1000,
+}}
+
+                   onMouseDown={(e) => {
+  e.preventDefault(); // important
+  e.stopPropagation(); // avoid interfering with drag
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const origW = sig.width;
+  const origH = sig.height;
+
+  const resize = (e) => {
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    setSignatures((prev) =>
+      prev.map((s) =>
+        s.id === sig.id
+          ? {
+              ...s,
+              width: Math.max(50, origW + dx),
+              height: Math.max(20, origH + dy),
+            }
+          : s
+      )
+    );
+  };
+
+  const stopResize = () => {
+    window.removeEventListener("mousemove", resize);
+    window.removeEventListener("mouseup", stopResize);
+  };
+
+  window.addEventListener("mousemove", resize);
+  window.addEventListener("mouseup", stopResize);
+}}
+
+                  >
+                    {sig.text}
+
+                    {/* Lock/Unlock */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSignatures((prev) =>
+                          prev.map((s) =>
+                            s.id === sig.id ? { ...s, locked: !s.locked } : s
+                          )
+                        );
+                      }}
+                      className="absolute top-[-20px] left-0 text-xs px-1 bg-yellow-500 text-white"
+                    >
+                      {sig.locked ? "🔓" : "🔒"}
+                    </button>
+
+                    {/* Delete */}
+                    {!sig.locked && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSignatures((prev) => prev.filter((s) => s.id !== sig.id));
+                        }}
+                        className="absolute top-[-20px] right-0 bg-red-500 text-white text-xs px-1"
+                      >
+                        🗑️
+                      </button>
+                    )}
+
+                    {/* Resize Handle */}
+                    {!sig.locked && (
+                      <div
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          const startX = e.clientX;
+                          const startY = e.clientY;
+                          const origW = sig.width;
+                          const origH = sig.height;
+
+                          const resize = (e) => {
+                            const dx = e.clientX - startX;
+                            const dy = e.clientY - startY;
+                            setSignatures((prev) =>
+                              prev.map((s) =>
+                                s.id === sig.id
+                                  ? { ...s, width: origW + dx, height: origH + dy }
+                                  : s
+                              )
+                            );
+                          };
+
+                          const stopResize = () => {
+                            window.removeEventListener("mousemove", resize);
+                            window.removeEventListener("mouseup", stopResize);
+                          };
+
+                          window.addEventListener("mousemove", resize);
+                          window.addEventListener("mouseup", stopResize);
+                        }}
+className="absolute bottom-0 right-0 w-4 h-4 bg-blue-600 cursor-nwse-resize z-50"
+                      ></div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
 
 export default SignPDFPage;

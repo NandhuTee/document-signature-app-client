@@ -10,6 +10,8 @@ import SignPage from './pages/SignPage';
 import SignAndDownload from './components/SignAndDownload';
 import SignDocument from './components/SignDocument';
 import SignTypedPDF from './components/SignTypedPDF';
+import SignImagePage from './pages/SignImagePage';
+import SignDrawPage from './pages/SignDrawPage';
 import SignPDFPage from './utils/SignPDFPage';
 import Dashboard from './components/Dashboard';
 import ErrorPage from './components/ErrorPage';
@@ -32,6 +34,8 @@ const router = createBrowserRouter([
       { path: '/sign/download', element: <SignAndDownload /> },
       { path: '/sign/:id', element: <SignDocument />, errorElement: <ErrorPage /> },
       { path: '/sign-pdf', element: <SignPDFPage /> },
+      { path: '/sign-image', element: <SignImagePage /> },
+      { path: '/sign-Draw', element: <SignDrawPage /> },
       { path: '/sign-typed', element: <SignTypedPDF /> },
       { path: '/typed-signature', element: <TypedSignatureDrag /> },
       { path: '/dashboard', element: <Dashboard />, loader: checkAuth },
