@@ -1,9 +1,9 @@
-// UploadForm.jsx
+// File: src/components/UploadForm.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function UploadForm() {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
 
@@ -14,16 +14,6 @@ function UploadForm() {
     const formData = new FormData();
     formData.append('file', file);
 
-      const handleUpload = async () => {
-    // ... your upload logic
-    if (res.ok) {
-      setMessage('✅ Upload successful!');
-      setTimeout(() => {
-        navigate('/documents');  // redirects to dashboard
-      }, 1000);
-    }
-  };
-
     try {
       const res = await fetch('https://document-signature-app-server-zp95.onrender.com/api/docs/upload', {
         method: 'POST',
@@ -33,10 +23,13 @@ function UploadForm() {
         body: formData
       });
 
+
       const data = await res.json();
       if (res.ok) {
         setMessage('✅ Upload successful!');
-        console.log(data);
+        setTimeout(() => {
+          navigate(`/sign/${data.doc._id}`);
+        }, 1000);
       } else {
         setMessage('❌ Upload failed.');
       }

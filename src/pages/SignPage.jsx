@@ -8,7 +8,7 @@ const SignPage = () => {
   return (
     <div className="p-6">
       <h2 className="text-xl font-bold mb-4">Draw Your Signature</h2>
-      <SignaturePad setSignatureImage={setSignatureImage} />
+      <SignaturePad setSignatureData={setSignatureImage} />
       
       {signatureImage && (
         <div className="mt-4">
@@ -18,6 +18,8 @@ const SignPage = () => {
       )}
     </div>
   );
+
 };
 
 export default SignPage;
+

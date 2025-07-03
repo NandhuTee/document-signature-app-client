@@ -1,18 +1,24 @@
-// src/App.jsx
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import Register from './components/Register';
+import Layout from './components/Layout';
+import Home from './components/Home';
 import Login from './components/Login';
+import Register from './components/Register';
 import UploadForm from './components/UploadForm';
 import DocumentList from './components/DocumentList';
-import Home from './components/Home';
-import Layout from './components/Layout'; // 👈 import Layout
+import SignPdf from './components/SignPdf';
+import SignPage from './pages/SignPage';
+import SignAndDownload from './components/SignAndDownload';
+import SignDocument from './components/SignDocument';
+import SignTypedPDF from './components/SignTypedPDF';
+import SignPDFPage from './utils/SignPDFPage';
+import Dashboard from './components/Dashboard';
 import ErrorPage from './components/ErrorPage';
-import Navbar from './components/Navbar';
+import { checkAuth } from './utils/auth';
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Layout />, // 👈 Wrap with Layout
+    element: <Layout />,
     errorElement: <ErrorPage />,
     children: [
       { path: '/', element: <Home /> },
@@ -20,20 +26,19 @@ const router = createBrowserRouter([
       { path: '/register', element: <Register /> },
       { path: '/upload', element: <UploadForm /> },
       { path: '/documents', element: <DocumentList /> },
-      {  path: '/sign',  element: <SignPdf />},
-      {  path: '/sign',  element: <SignPage />
-}
+      { path: '/sign/pdf', element: <SignPdf /> },
+      { path: '/sign/page', element: <SignPage /> },
+      { path: '/sign/download', element: <SignAndDownload /> },
+      { path: '/sign/:id', element: <SignDocument />, errorElement: <ErrorPage /> },
+      { path: '/sign-pdf', element: <SignPDFPage /> },
+      { path: '/sign-typed', element: <SignTypedPDF /> },
+      { path: '/dashboard', element: <Dashboard />, loader: checkAuth }
     ]
   }
 ]);
 
 function App() {
-  return (
-    <>
-      <Navbar /> {/* This appears on every page */}
-      <RouterProvider router={router} />
-    </>
-  );
+  return <RouterProvider router={router} />;
 }
 
-export default App;
+export default App; // ✅ Must come after the App() definition

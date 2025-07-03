@@ -1,34 +1,29 @@
-// src/components/SignaturePad.jsx
+//src/components/SignaturePad.jsx
 import React, { useRef } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 
-const SignaturePad = ({ setSignatureImage }) => {
+function SignaturePad({ setSignatureData }) {
   const sigCanvas = useRef();
 
   const clear = () => sigCanvas.current.clear();
-
   const save = () => {
-    const imageData = sigCanvas.current.toDataURL(); // base64 image
-    setSignatureImage(imageData); // Send image back to parent
+    const dataUrl = sigCanvas.current.toDataURL();
+    setSignatureData(dataUrl); // send dataURL to parent
   };
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center space-y-2 p-4 bg-gray-100 rounded-md shadow">
       <SignatureCanvas
-        ref={sigCanvas}
         penColor="black"
-        canvasProps={{
-          width: 400,
-          height: 150,
-          className: "border border-gray-300 rounded"
-        }}
+        canvasProps={{ width: 400, height: 150, className: 'bg-white border rounded' }}
+        ref={sigCanvas}
       />
-      <div className="mt-2 space-x-4">
-        <button onClick={clear} className="px-3 py-1 bg-red-600 text-white rounded">Clear</button>
-        <button onClick={save} className="px-3 py-1 bg-green-600 text-white rounded">Save</button>
+      <div className="space-x-2">
+        <button onClick={clear} className="px-3 py-1 bg-red-500 text-white rounded">Clear</button>
+        <button onClick={save} className="px-3 py-1 bg-green-500 text-white rounded">Save Signature</button>
       </div>
     </div>
   );
-};
+}
 
 export default SignaturePad;
