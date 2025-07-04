@@ -1,5 +1,5 @@
 ﻿# document-signature-app-client
- 🖊️ Document Signature App (Frontend - React)
+🖊️ Document Signature App (Frontend - React)
 
 \=============================================
 
