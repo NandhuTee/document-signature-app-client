@@ -1,5 +1,5 @@
 ﻿# document-signature-app-client
-# ✨ Frontend Documentation – Document Signature App (DocuSign Clone)
+# ✨ Frontend Documentation – React Document Signer – Labmentix Internship
 ## 🚀 Demo
 
 🎥 **Live Walkthrough Video:**  
